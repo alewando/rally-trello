@@ -1,0 +1,12 @@
+rally:
+  # Get API key from https://rally1.rallydev.com/login
+  api_key: [Rally API key goes here]
+  # Workspace can also be specified on command line ( -w "workspace name")
+  workspace: [Rally workspace name]
+  # Project can also be specified on command line ( -p "project name")
+  project: [Rally project name]
+trello:
+  # developer public key, get from https://trello.com/1/appKey/generate
+  developer_key: [Trello Developer Key]
+  # User token, get from https://trello.com/1/authorize?key=[developer_public_key]&name=RallyStoryImport&expiration=never&response_type=token&scope=read,write
+  user_token: [Trello User Token]
