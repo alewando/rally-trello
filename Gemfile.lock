@@ -41,4 +41,4 @@ PLATFORMS
 DEPENDENCIES
   rally_api
   ruby-trello
-  slop
+  slop (= 3.6.0)

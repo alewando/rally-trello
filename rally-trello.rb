@@ -24,6 +24,7 @@ def read_config
     on :w, :rally_workspace=, 'Rally workspace name'
     on :p, :rally_project=, 'Rally project name'
     on :i, :rally_iteration=, 'Rally iteration name (required)'
+    on :d, :rally_defects, 'Import defects (off by default)'
     on :b, :trello_board=, 'Target trello board (will be created if necessary)'
     on :l, :trello_list=, 'Trello list name (will be created if necessary, default is "To Do")'
   end
@@ -159,6 +160,6 @@ board = trello_board(@config['trello']['board'])
 list = trello_list(@config['trello']['list'], board)
 puts "Importing to board '#{board.name}'"
 puts "Importing to list '#{list.name}'"
-import_rally_entities_as_cards(defects, 'defect', "Rally Defect", list)
+import_rally_entities_as_cards(defects, 'defect', "Rally Defect", list) if @config['rally']['defects']
 import_rally_entities_as_cards(stories, 'userstory', "Rally User Story", list)
 
