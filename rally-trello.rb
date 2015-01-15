@@ -89,37 +89,44 @@ def rally_stories_for_iteration(iteration)
   rally.find(story_query)
 end
 
-def import_stories_as_cards(rally_stories, trello_board_name, trello_list_name)
+def trello_board(name)
+  board = Trello::Board.all().find { |b| b.name == name }
+  if !board && name
+    puts "Creating board '#{name}'"
+    board = Trello::Board.create(name: name)
+  end
+  board
+end
+
+def trello_list(name, board)
+  list = board.lists.find { |l| l.name == name }
+  if !list && name
+    puts "Creating list '#{name}'"
+    list = Trello::List.create(name: name, board_id: board.id)
+  end
+  list
+end
+
+def cards(list)
+  @cards ||= list.cards
+end
+
+def import_card(card_name, attachment_name, attachment_url, list)
+  if cards(list).any? {|c| c.name == card_name }
+    puts "Card '#{card_name}' already exists"
+  else
+    puts "Creating card: #{card_name}"
+    card = Trello::Card.create(name: card_name, list_id: list.id)
+    card.add_attachment(attachment_url, attachment_name)
+  end
+end
+
+def import_stories_as_cards(rally_stories, trello_list)
   projectId = rally_stories.first.Project.read.ObjectID
-
-  board = Trello::Board.all().find { |b| b.name == trello_board_name }
-  if board
-    puts "Importing to board '#{trello_board_name}'"
-  else
-    puts "Creating board '#{trello_board_name}'"
-    board = Trello::Board.create(name: trello_board_name)
-  end
-
-  list = board.lists.find { |l| l.name == trello_list_name }
-  if list
-    puts "Importing to list '#{trello_list_name}'"
-  else
-    puts "Creating list '#{trello_list_name}'"
-    list = Trello::List.create(name: trello_list_name, board_id: board.id)
-  end
-
-  cards = list.cards
-
   rally_stories.each do |story|
     card_name = "#{story.FormattedID}: #{story.name}"
-    if cards.any? {|c| c.name == card_name }
-      puts "Card '#{card_name}' already exists"
-    else
-      puts "Creating card: #{card_name}"
-      card = Trello::Card.create(name: card_name, list_id: list.id)
-      story_url = "https://rally1.rallydev.com/#/#{projectId}d/detail/userstory/#{story.ObjectID}"
-      card.add_attachment(story_url, "Rally User Story")
-    end
+    story_url = "https://rally1.rallydev.com/#/#{projectId}d/detail/userstory/#{story.ObjectID}"
+    import_card(card_name, "Rally User Story", story_url, trello_list)
   end
 end
 
@@ -128,6 +135,11 @@ iteration = @config['rally']['iteration']
 stories = rally_stories_for_iteration(iteration)
 if stories.length < 1
   puts "No user stories found for iteration '#{iteration}'"
-  abort
 end
-import_stories_as_cards(stories, @config['trello']['board'], @config['trello']['list'])
+
+board = trello_board(@config['trello']['board'])
+list = trello_list(@config['trello']['list'], board)
+puts "Importing to board '#{board.name}'"
+puts "Importing to list '#{list.name}'"
+import_stories_as_cards(stories, list)
+
