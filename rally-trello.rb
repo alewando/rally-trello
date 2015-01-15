@@ -79,14 +79,25 @@ def rally
 end
 
 def rally_stories_for_iteration(iteration)
-  story_query = RallyAPI::RallyQuery.new()
-  story_query.type = "hierarchicalrequirement"
-  story_query.fetch = "Name,FormattedID,Project,ObjectID"
-  story_query.page_size = 1000
-  story_query.limit = 1000
-  story_query.order = "FormattedID Asc"
-  story_query.query_string = "(Iteration.Name = #{iteration})"
-  rally.find(story_query)
+  query = RallyAPI::RallyQuery.new()
+  query.type = "hierarchicalrequirement"
+  query.fetch = "Name,FormattedID,Project,ObjectID"
+  query.page_size = 1000
+  query.limit = 1000
+  query.order = "FormattedID Desc"
+  query.query_string = "(Iteration.Name = #{iteration})"
+  rally.find(query)
+end
+
+def rally_defects_for_iteration(iteration)
+  query = RallyAPI::RallyQuery.new()
+  query.type = "defect"
+  query.fetch = "Name,FormattedID,Project,ObjectID"
+  query.page_size = 1000
+  query.limit = 1000
+  query.order = "FormattedID Desc"
+  query.query_string = "(Iteration.Name = #{iteration})"
+  rally.find(query)
 end
 
 def trello_board(name)
@@ -121,25 +132,33 @@ def import_card(card_name, attachment_name, attachment_url, list)
   end
 end
 
-def import_stories_as_cards(rally_stories, trello_list)
-  projectId = rally_stories.first.Project.read.ObjectID
-  rally_stories.each do |story|
-    card_name = "#{story.FormattedID}: #{story.name}"
-    story_url = "https://rally1.rallydev.com/#/#{projectId}d/detail/userstory/#{story.ObjectID}"
-    import_card(card_name, "Rally User Story", story_url, trello_list)
+def import_rally_entities_as_cards(rally_entities, entity_type, attachment_name, trello_list)
+  projectId = rally_entities.first.Project.read.ObjectID
+  rally_entities.each do |entity|
+    card_name = "#{entity.FormattedID}: #{entity.name}"
+    story_url = "https://rally1.rallydev.com/#/#{projectId}d/detail/#{entity_type}/#{entity.ObjectID}"
+    import_card(card_name, attachment_name, story_url, trello_list)
   end
 end
 
+
 read_config()
 iteration = @config['rally']['iteration']
+
 stories = rally_stories_for_iteration(iteration)
 if stories.length < 1
   puts "No user stories found for iteration '#{iteration}'"
 end
+defects = rally_defects_for_iteration(iteration)
+if defects.length < 1
+  puts "No defects found for iteration '#{iteration}'"
+end
+
 
 board = trello_board(@config['trello']['board'])
 list = trello_list(@config['trello']['list'], board)
 puts "Importing to board '#{board.name}'"
 puts "Importing to list '#{list.name}'"
-import_stories_as_cards(stories, list)
+import_rally_entities_as_cards(defects, 'defect', "Rally Defect", list)
+import_rally_entities_as_cards(stories, 'userstory', "Rally User Story", list)
 
